@@ -1,0 +1,18 @@
+{
+    "sequence_length": 45,
+    "d_model": 128,
+    "nhead": 4,
+    "num_layers": 2,
+    "dim_feedforward": 256,
+    "batch_size": 4,
+    "num_epochs": 50,
+    "learning_rate": 5e-05,
+    "dropout": 0.1,
+    "feature_num": "158+39",
+    "max_grad_norm": 5.0,
+    "pairwise_weight": 2,
+    "base_weight": 1.0,
+    "top5_weight": 4.0,
+    "output_dir": "./model/45_158+39",
+    "data_path": "./data"
+}
