@@ -55,16 +55,17 @@ class FeatureAttention(nn.Module):
         return self.dropout(attended)
 
 class StockTransformer(nn.Module):
-    def __init__(self, input_dim, config, num_stocks, emb_dim=16):
+    def __init__(self, input_dim, config, num_stocks, num_industries=30, industry_emb_dim=16):
         super(StockTransformer, self).__init__()
         self.model_type = 'RankingTransformer'
         self.config = config
         self.num_stocks = num_stocks
-        
+        self.num_industries = num_industries
+
         # 输入投影层
         self.input_proj = nn.Linear(input_dim, config['d_model'])
         self.pos_encoder = PositionalEncoding(config['d_model'], config['dropout'], config['sequence_length'])
-        
+
         # 时序特征提取
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=config['d_model'],
@@ -74,13 +75,17 @@ class StockTransformer(nn.Module):
             batch_first=True
         )
         self.temporal_encoder = nn.TransformerEncoder(encoder_layer, num_layers=config['num_layers'])
-        
+
         # 特征注意力
         self.feature_attention = FeatureAttention(config['d_model'], config['dropout'])
-        
+
+        # 行业Embedding
+        self.industry_embedding = nn.Embedding(num_industries, industry_emb_dim, padding_idx=0)
+        self.industry_proj = nn.Linear(config['d_model'] + industry_emb_dim, config['d_model'])
+
         # 股票间交互注意力
         self.cross_stock_attention = CrossStockAttention(config['d_model'], config['nhead'], config['dropout'])
-        
+
         # 排序特异性层
         self.ranking_layers = nn.Sequential(
             nn.Linear(config['d_model'], config['d_model']),
@@ -92,7 +97,7 @@ class StockTransformer(nn.Module):
             nn.ReLU(),
             nn.Dropout(config['dropout'])
         )
-        
+
         # 最终排序分数输出
         self.score_head = nn.Sequential(
             nn.Linear(config['d_model'] // 2, config['d_model'] // 4),
@@ -100,7 +105,7 @@ class StockTransformer(nn.Module):
             nn.Dropout(config['dropout'] * 0.5),
             nn.Linear(config['d_model'] // 4, 1)
         )
-        
+
         # 初始化权重
         self._init_weights()
         
@@ -112,40 +117,47 @@ class StockTransformer(nn.Module):
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
     
-    def forward(self, src):
+    def forward(self, src, industry_idx=None):
         # src: [batch, num_stocks, seq_len, feature_dim]
         batch_size, num_stocks, seq_len, feature_dim = src.size()
-        
+
         # 重塑为 [batch*num_stocks, seq_len, feature_dim]
         src_reshaped = src.view(batch_size * num_stocks, seq_len, feature_dim)
-        
+
         # 输入投影和位置编码
         src_proj = self.input_proj(src_reshaped)  # [batch*num_stocks, seq_len, d_model]
         src_proj = self.pos_encoder(src_proj)
-        
+
         # 时序特征提取
         temporal_features = self.temporal_encoder(src_proj)  # [batch*num_stocks, seq_len, d_model]
-        
+
         # 特征注意力聚合
         aggregated_features = self.feature_attention(temporal_features)  # [batch*num_stocks, d_model]
-        
+
+        # 注入行业Embedding
+        if industry_idx is not None:
+            ind_emb = self.industry_embedding(industry_idx)  # [batch, num_stocks, industry_emb_dim]
+            ind_emb = ind_emb.view(batch_size * num_stocks, -1)  # [batch*num_stocks, industry_emb_dim]
+            aggregated_features = torch.cat([aggregated_features, ind_emb], dim=-1)
+            aggregated_features = self.industry_proj(aggregated_features)  # [batch*num_stocks, d_model]
+
         # 重塑回股票维度用于股票间交互
         stock_features = aggregated_features.view(batch_size, num_stocks, -1)  # [batch, num_stocks, d_model]
-        
+
         # 股票间交互注意力
         interactive_features = self.cross_stock_attention(stock_features)  # [batch, num_stocks, d_model]
-        
+
         # 重塑回原形状
         interactive_features = interactive_features.view(batch_size * num_stocks, -1)
-        
+
         # 排序特异性变换
         ranking_features = self.ranking_layers(interactive_features)  # [batch*num_stocks, d_model//2]
-        
+
         # 生成排序分数
         scores = self.score_head(ranking_features)  # [batch*num_stocks, 1]
-        
+
         # 重塑为最终输出格式
         output = scores.view(batch_size, num_stocks)  # [batch, num_stocks]
-        
+
         return output
 

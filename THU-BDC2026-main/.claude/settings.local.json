@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:baostock.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:akshare.akfamily.xyz)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('data/stock_data.csv', nrows=1\\); print\\('stock_data.csv columns:', list\\(df.columns\\)\\)\")",
+      "Bash(uv run *)"
+    ]
+  }
+}

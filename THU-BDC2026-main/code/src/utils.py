@@ -542,16 +542,17 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
 
     # 1. 确保数据按股票和时间排序
     data = data.sort_values(['instrument', 'datetime']).reset_index(drop=True)
-    
+
     # 2. 确保每只股票都有 'label'（次日涨跌幅），否则无法作为 target
     data = data.dropna(subset=['label'])
+    has_industry = 'industry_idx' in data.columns
     
     # 3. 为每只股票生成所有滑动窗口
     # 仅保留满足以下条件的 end_date：
     # - 历史窗口长度满足 sequence_length
     # - end_date 之后存在 5 条未来数据
     # - 这 5 条未来数据在自然日上连续（任意节假日/周末导致的日期跳跃都会被过滤）
-    all_windows = []  # 每个元素: (end_date, stock_code, sequence, target)
+    all_windows = []  # (end_date, stock_code, sequence, target, industry_idx)
 
     print("Step 1: 为每只股票生成滑动窗口...")
     grouped = data.groupby('instrument')
@@ -565,6 +566,13 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
         labels = group['label'].values.astype(np.float32)           # (T,)
         dates = group['datetime'].values                            # (T,)
         dates_day = group['datetime'].values.astype('datetime64[D]')
+
+        # 每只股票的行业索引（同一股票只有一个行业）
+        ind_val = 0
+        if has_industry:
+            ind_vals = group['industry_idx'].values
+            ind_vals = ind_vals[ind_vals > 0]
+            ind_val = int(ind_vals[0]) if len(ind_vals) > 0 else 0
 
         # 生成滑动窗口：从第 sequence_length-1 行开始（0-indexed）
         num_windows = len(group) - sequence_length + 1
@@ -585,17 +593,18 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
             seq = feature_values[i : i + sequence_length]   # (L, F)
             target = labels[end_idx]                        # label 对应窗口最后一天的次日涨跌幅
             end_date = dates[end_idx]                       # 窗口结束日期（即预测日）
-            all_windows.append((end_date, stock_code, seq, target))
+            all_windows.append((end_date, stock_code, seq, target, ind_val))
 
     # 4. 转为 DataFrame 便于按日期聚合
     print("Step 2: 按日期聚合窗口...")
-    window_df = pd.DataFrame(all_windows, columns=['date', 'stock_code', 'seq', 'target'])
+    window_df = pd.DataFrame(all_windows, columns=['date', 'stock_code', 'seq', 'target', 'industry_idx'])
 
     # 5. 按 date 分组，构建每日样本
     sequences = []
     targets = []
     relevance_scores = []
     stock_indices = []
+    industry_indices = [] if has_industry else None
 
     print("Step 3: 构建每日样本并计算 relevance...")
     grouped_by_date = window_df.groupby('date')
@@ -625,6 +634,8 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
         targets.append(day_targets)
         relevance_scores.append(relevance)
         stock_indices.append(day_stocks)
+        if has_industry:
+            industry_indices.append(group['industry_idx'].values.astype(np.int64))
 
     print(f"成功创建 {len(sequences)} 个训练样本")
     if len(sequences) > 0:
@@ -636,4 +647,4 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
     #     joblib.dump((sequences, targets, relevance_scores, stock_indices), ranking_data_path)
     #     print(f"数据集已保存到: {ranking_data_path}")
 
-    return sequences, targets, relevance_scores, stock_indices
+    return sequences, targets, relevance_scores, stock_indices, industry_indices

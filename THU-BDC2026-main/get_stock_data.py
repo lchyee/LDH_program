@@ -50,7 +50,7 @@ def get_hs300_stocks():
 def get_stock_history(bs_code, start_date, end_date):
     """获取单只股票历史数据"""
     rs = bs.query_history_k_data_plus(bs_code,
-        "date,code,open,high,low,close,preclose,volume,amount,turn,pctChg",
+        "date,code,open,high,low,close,preclose,volume,amount,turn,pctChg,peTTM,pbMRQ,psTTM,pcfNcfTTM",
         start_date=start_date, end_date=end_date,
         frequency="d", adjustflag="1")  # adjustflag="1"表示后复权
     
@@ -67,7 +67,8 @@ def get_stock_history(bs_code, start_date, end_date):
     df = pd.DataFrame(data_list, columns=rs.fields)
     
     # 转换数据类型
-    numeric_cols = ['open', 'high', 'low', 'close', 'preclose', 'volume', 'amount', 'turn', 'pctChg']
+    numeric_cols = ['open', 'high', 'low', 'close', 'preclose', 'volume', 'amount', 'turn', 'pctChg',
+                    'peTTM', 'pbMRQ', 'psTTM', 'pcfNcfTTM']
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
     
@@ -93,11 +94,16 @@ def get_stock_history(bs_code, start_date, end_date):
         'volume': '成交量',
         'amount': '成交额',
         'turn': '换手率',
-        'pctChg': '涨跌幅'
+        'pctChg': '涨跌幅',
+        'peTTM': '市盈率TTM',
+        'pbMRQ': '市净率MRQ',
+        'psTTM': '市销率TTM',
+        'pcfNcfTTM': '市现率TTM',
     })
-    
-    columns = ['股票代码', '日期', '开盘', '收盘', '最高', '最低', 
-               '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅']
+
+    columns = ['股票代码', '日期', '开盘', '收盘', '最高', '最低',
+               '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅',
+               '市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM']
     df = df[columns]
     
     return df
@@ -221,7 +227,7 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
     
     start_date = "2024-01-01"
-    end_date = "2026-03-15"
+    end_date = "2026-04-20"
     
     output_path = os.path.join(save_dir, "stock_data.csv")
     

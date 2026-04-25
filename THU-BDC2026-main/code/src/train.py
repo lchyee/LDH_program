@@ -29,7 +29,11 @@ def set_seed(seed=42):
 feature_cloums_map = {
     '39': ['instrument','开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅','sma_5', 'sma_20', 'ema_12', 'ema_26', 'rsi', 'macd', 'macd_signal', 'volume_change', 'obv','volume_ma_5', 'volume_ma_20', 'volume_ratio', 'kdj_k', 'kdj_d', 'kdj_j', 'boll_mid', 'boll_std', 'atr_14', 'ema_60', 'volatility_10', 'volatility_20', 'return_1', 'return_5', 'return_10',  'high_low_spread', 'open_close_spread', 'high_close_spread', 'low_close_spread'],
 
-    '158+39': ['instrument','开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅','KMID', 'KLEN', 'KMID2', 'KUP', 'KUP2', 'KLOW', 'KLOW2', 'KSFT', 'KSFT2', 'OPEN0', 'HIGH0', 'LOW0', 'VWAP0', 'ROC5', 'ROC10', 'ROC20', 'ROC30', 'ROC60', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', 'STD5', 'STD10', 'STD20', 'STD30', 'STD60', 'BETA5', 'BETA10', 'BETA20', 'BETA30', 'BETA60', 'RSQR5', 'RSQR10', 'RSQR20', 'RSQR30', 'RSQR60', 'RESI5', 'RESI10', 'RESI20', 'RESI30', 'RESI60', 'MAX5', 'MAX10', 'MAX20', 'MAX30', 'MAX60', 'MIN5', 'MIN10', 'MIN20', 'MIN30', 'MIN60', 'QTLU5', 'QTLU10', 'QTLU20', 'QTLU30', 'QTLU60', 'QTLD5', 'QTLD10', 'QTLD20', 'QTLD30', 'QTLD60', 'RANK5', 'RANK10', 'RANK20', 'RANK30', 'RANK60', 'RSV5', 'RSV10', 'RSV20', 'RSV30', 'RSV60', 'IMAX5', 'IMAX10', 'IMAX20', 'IMAX30', 'IMAX60', 'IMIN5', 'IMIN10', 'IMIN20', 'IMIN30', 'IMIN60', 'IMXD5', 'IMXD10', 'IMXD20', 'IMXD30', 'IMXD60', 'CORR5', 'CORR10', 'CORR20', 'CORR30', 'CORR60', 'CORD5', 'CORD10', 'CORD20', 'CORD30', 'CORD60', 'CNTP5', 'CNTP10', 'CNTP20', 'CNTP30', 'CNTP60', 'CNTN5', 'CNTN10', 'CNTN20', 'CNTN30', 'CNTN60', 'CNTD5', 'CNTD10', 'CNTD20', 'CNTD30', 'CNTD60', 'SUMP5', 'SUMP10', 'SUMP20', 'SUMP30', 'SUMP60', 'SUMN5', 'SUMN10', 'SUMN20', 'SUMN30', 'SUMN60', 'SUMD5', 'SUMD10', 'SUMD20', 'SUMD30', 'SUMD60', 'VMA5', 'VMA10', 'VMA20', 'VMA30', 'VMA60', 'VSTD5', 'VSTD10', 'VSTD20', 'VSTD30', 'VSTD60', 'WVMA5', 'WVMA10', 'WVMA20', 'WVMA30', 'WVMA60', 'VSUMP5', 'VSUMP10', 'VSUMP20', 'VSUMP30', 'VSUMP60', 'VSUMN5', 'VSUMN10', 'VSUMN20', 'VSUMN30', 'VSUMN60', 'VSUMD5', 'VSUMD10', 'VSUMD20', 'VSUMD30', 'VSUMD60','sma_5', 'sma_20', 'ema_12', 'ema_26', 'rsi', 'macd', 'macd_signal', 'volume_change', 'obv', 'volume_ma_5', 'volume_ma_20', 'volume_ratio', 'kdj_k', 'kdj_d', 'kdj_j', 'boll_mid', 'boll_std', 'atr_14', 'ema_60', 'volatility_10', 'volatility_20', 'return_1', 'return_5', 'return_10',  'high_low_spread', 'open_close_spread', 'high_close_spread', 'low_close_spread']
+    '158+39': ['instrument','开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅',
+               '市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM',
+               'ROE_avg', '净利率', 'EPS_TTM', '净利同比', '权益同比', '资产负债率',
+               'CPI_同比', 'CPI_环比', 'PMI_制造业', 'M2_同比', 'SHIBOR_ON', 'QVIX', '涨停家数', '连板均值', '封单资金均值',
+               'KMID', 'KLEN', 'KMID2', 'KUP', 'KUP2', 'KLOW', 'KLOW2', 'KSFT', 'KSFT2', 'OPEN0', 'HIGH0', 'LOW0', 'VWAP0', 'ROC5', 'ROC10', 'ROC20', 'ROC30', 'ROC60', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', 'STD5', 'STD10', 'STD20', 'STD30', 'STD60', 'BETA5', 'BETA10', 'BETA20', 'BETA30', 'BETA60', 'RSQR5', 'RSQR10', 'RSQR20', 'RSQR30', 'RSQR60', 'RESI5', 'RESI10', 'RESI20', 'RESI30', 'RESI60', 'MAX5', 'MAX10', 'MAX20', 'MAX30', 'MAX60', 'MIN5', 'MIN10', 'MIN20', 'MIN30', 'MIN60', 'QTLU5', 'QTLU10', 'QTLU20', 'QTLU30', 'QTLU60', 'QTLD5', 'QTLD10', 'QTLD20', 'QTLD30', 'QTLD60', 'RANK5', 'RANK10', 'RANK20', 'RANK30', 'RANK60', 'RSV5', 'RSV10', 'RSV20', 'RSV30', 'RSV60', 'IMAX5', 'IMAX10', 'IMAX20', 'IMAX30', 'IMAX60', 'IMIN5', 'IMIN10', 'IMIN20', 'IMIN30', 'IMIN60', 'IMXD5', 'IMXD10', 'IMXD20', 'IMXD30', 'IMXD60', 'CORR5', 'CORR10', 'CORR20', 'CORR30', 'CORR60', 'CORD5', 'CORD10', 'CORD20', 'CORD30', 'CORD60', 'CNTP5', 'CNTP10', 'CNTP20', 'CNTP30', 'CNTP60', 'CNTN5', 'CNTN10', 'CNTN20', 'CNTN30', 'CNTN60', 'CNTD5', 'CNTD10', 'CNTD20', 'CNTD30', 'CNTD60', 'SUMP5', 'SUMP10', 'SUMP20', 'SUMP30', 'SUMP60', 'SUMN5', 'SUMN10', 'SUMN20', 'SUMN30', 'SUMN60', 'SUMD5', 'SUMD10', 'SUMD20', 'SUMD30', 'SUMD60', 'VMA5', 'VMA10', 'VMA20', 'VMA30', 'VMA60', 'VSTD5', 'VSTD10', 'VSTD20', 'VSTD30', 'VSTD60', 'WVMA5', 'WVMA10', 'WVMA20', 'WVMA30', 'WVMA60', 'VSUMP5', 'VSUMP10', 'VSUMP20', 'VSUMP30', 'VSUMP60', 'VSUMN5', 'VSUMN10', 'VSUMN20', 'VSUMN30', 'VSUMN60', 'VSUMD5', 'VSUMD10', 'VSUMD20', 'VSUMD30', 'VSUMD60','sma_5', 'sma_20', 'ema_12', 'ema_26', 'rsi', 'macd', 'macd_signal', 'volume_change', 'obv', 'volume_ma_5', 'volume_ma_20', 'volume_ratio', 'kdj_k', 'kdj_d', 'kdj_j', 'boll_mid', 'boll_std', 'atr_14', 'ema_60', 'volatility_10', 'volatility_20', 'return_1', 'return_5', 'return_10',  'high_low_spread', 'open_close_spread', 'high_close_spread', 'low_close_spread']
 }
 feature_engineer_func_map = {
     '39': engineer_features_39,
@@ -53,7 +57,7 @@ def _build_label_and_clean(processed, drop_small_open=True):
     return processed
 
 
-def _preprocess_common(df, stockid2idx, desc, drop_small_open=True):
+def _preprocess_common(df, stockid2idx, desc, drop_small_open=True, industry_vocab=None):
     assert config['feature_num'] in feature_engineer_func_map, f"Unsupported feature_num: {config['feature_num']}"
     assert stockid2idx is not None, "stockid2idx 不能为空"
     feature_engineer = feature_engineer_func_map[config['feature_num']]
@@ -62,6 +66,15 @@ def _preprocess_common(df, stockid2idx, desc, drop_small_open=True):
     # 保证时序正确，避免 shift 标签错位
     df = df.copy()
     df = df.sort_values(['股票代码', '日期']).reset_index(drop=True)
+
+    # 处理行业分类
+    if industry_vocab is None:
+        industry_vocab = {}
+    if '行业名称' in df.columns:
+        if not industry_vocab:
+            unique_industries = sorted(df['行业名称'].unique())
+            industry_vocab = {name: i + 1 for i, name in enumerate(unique_industries)}
+        df['industry_idx'] = df['行业名称'].map(industry_vocab).fillna(0).astype(np.int64)
 
     print(f"正在使用多进程进行{desc}...")
     groups = [group for _, group in df.groupby('股票代码', sort=False)]
@@ -74,25 +87,30 @@ def _preprocess_common(df, stockid2idx, desc, drop_small_open=True):
 
     processed = pd.concat(processed_list).reset_index(drop=True)
 
+    # 对数据源缺失的列自动补0，避免 KeyError
+    for col in feature_columns:
+        if col not in processed.columns:
+            processed[col] = 0.0
+
     # 映射股票索引，并剔除映射失败样本
     processed['instrument'] = processed['股票代码'].map(stockid2idx)
     processed = processed.dropna(subset=['instrument']).copy()
     processed['instrument'] = processed['instrument'].astype(np.int64)
 
     processed = _build_label_and_clean(processed, drop_small_open=drop_small_open)
-    return processed, feature_columns
+    return processed, feature_columns, industry_vocab
 
 
 # 数据预处理函数
-def preprocess_data(df, is_train=True, stockid2idx=None):
+def preprocess_data(df, is_train=True, stockid2idx=None, industry_vocab=None):
     if not is_train:
-        return _preprocess_common(df, stockid2idx, desc="特征工程", drop_small_open=False)
-    return _preprocess_common(df, stockid2idx, desc="特征工程", drop_small_open=True)
+        return _preprocess_common(df, stockid2idx, desc="特征工程", drop_small_open=False, industry_vocab=industry_vocab)
+    return _preprocess_common(df, stockid2idx, desc="特征工程", drop_small_open=True, industry_vocab=industry_vocab)
 
 
-def preprocess_val_data(df, stockid2idx=None):
+def preprocess_val_data(df, stockid2idx=None, industry_vocab=None):
     # 验证集与训练集保持同口径，避免 label 分布漂移
-    return _preprocess_common(df, stockid2idx, desc="验证集特征工程", drop_small_open=True)
+    return _preprocess_common(df, stockid2idx, desc="验证集特征工程", drop_small_open=True, industry_vocab=industry_vocab)
 
 
 # 加权的排序损失函数
@@ -234,22 +252,26 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
 
 class RankingDataset(torch.utils.data.Dataset):
     """排序数据集类"""
-    def __init__(self, sequences, targets, relevance_scores, stock_indices):
+    def __init__(self, sequences, targets, relevance_scores, stock_indices, industry_indices=None):
         self.sequences = sequences
         self.targets = targets
         self.relevance_scores = relevance_scores
         self.stock_indices = stock_indices
-    
+        self.industry_indices = industry_indices  # [num_dates, max_stocks] or None
+
     def __len__(self):
         return len(self.sequences)
-    
+
     def __getitem__(self, idx):
-        return {
-            'sequences': torch.FloatTensor(self.sequences[idx]),  # [num_stocks, seq_len, features]
-            'targets': torch.FloatTensor(self.targets[idx]),      # [num_stocks] 真实涨跌幅
-            'relevance': torch.LongTensor(self.relevance_scores[idx]),  # [num_stocks] 排序标签
-            'stock_indices': torch.LongTensor(self.stock_indices[idx])  # [num_stocks] 股票索引
+        item = {
+            'sequences': torch.FloatTensor(self.sequences[idx]),
+            'targets': torch.FloatTensor(self.targets[idx]),
+            'relevance': torch.LongTensor(self.relevance_scores[idx]),
+            'stock_indices': torch.LongTensor(self.stock_indices[idx]),
         }
+        if self.industry_indices is not None:
+            item['industry_idx'] = torch.LongTensor(self.industry_indices[idx])
+        return item
 
 def collate_fn(batch):
     """自定义collate函数处理变长序列"""
@@ -257,22 +279,24 @@ def collate_fn(batch):
     targets = [item['targets'] for item in batch]
     relevance = [item['relevance'] for item in batch]
     stock_indices = [item['stock_indices'] for item in batch]
-    
+    has_industry = 'industry_idx' in batch[0]
+
     # 找到最大股票数量
     max_stocks = max(seq.size(0) for seq in sequences)
-    
+
     # Padding到相同长度
     padded_sequences = []
     padded_targets = []
     padded_relevance = []
     padded_stock_indices = []
+    padded_industry_idx = []
     masks = []
-    
-    for seq, tgt, rel, stock_idx in zip(sequences, targets, relevance, stock_indices):
+
+    for i, (seq, tgt, rel, stock_idx) in enumerate(zip(sequences, targets, relevance, stock_indices)):
         num_stocks = seq.size(0)
         seq_len = seq.size(1)
         feature_dim = seq.size(2)
-        
+
         # 创建padding
         if num_stocks < max_stocks:
             pad_size = max_stocks - num_stocks
@@ -280,29 +304,39 @@ def collate_fn(batch):
             tgt_pad = torch.zeros(pad_size)
             rel_pad = torch.zeros(pad_size, dtype=torch.long)
             stock_pad = torch.zeros(pad_size, dtype=torch.long)
-            
+
             seq = torch.cat([seq, seq_pad], dim=0)
             tgt = torch.cat([tgt, tgt_pad], dim=0)
             rel = torch.cat([rel, rel_pad], dim=0)
             stock_idx = torch.cat([stock_idx, stock_pad], dim=0)
-        
+
         # 创建mask标记有效位置
         mask = torch.ones(max_stocks)
         mask[num_stocks:] = 0
-        
+
         padded_sequences.append(seq)
         padded_targets.append(tgt)
         padded_relevance.append(rel)
         padded_stock_indices.append(stock_idx)
         masks.append(mask)
-    
-    return {
-        'sequences': torch.stack(padded_sequences),      # [batch, max_stocks, seq_len, features]
-        'targets': torch.stack(padded_targets),          # [batch, max_stocks]
-        'relevance': torch.stack(padded_relevance),      # [batch, max_stocks]
-        'stock_indices': torch.stack(padded_stock_indices),  # [batch, max_stocks]
-        'masks': torch.stack(masks)                      # [batch, max_stocks]
+
+        if has_industry:
+            ind = batch[i]['industry_idx']
+            if num_stocks < max_stocks:
+                ind_pad = torch.zeros(max_stocks - num_stocks, dtype=torch.long)
+                ind = torch.cat([ind, ind_pad], dim=0)
+            padded_industry_idx.append(ind)
+
+    result = {
+        'sequences': torch.stack(padded_sequences),
+        'targets': torch.stack(padded_targets),
+        'relevance': torch.stack(padded_relevance),
+        'stock_indices': torch.stack(padded_stock_indices),
+        'masks': torch.stack(masks),
     }
+    if has_industry:
+        result['industry_idx'] = torch.stack(padded_industry_idx)
+    return result
 
 # 排序训练函数
 def train_ranking_model(model, dataloader, criterion, optimizer, device, epoch, writer):
@@ -318,9 +352,12 @@ def train_ranking_model(model, dataloader, criterion, optimizer, device, epoch, 
         masks = batch['masks'].to(device)            # [batch, max_stocks] 有效位置mask
         
         optimizer.zero_grad()
-        
+
         # 模型预测
-        outputs = model(sequences)  # [batch, max_stocks] 预测分数
+        industry_idx = batch.get('industry_idx', None)
+        if industry_idx is not None:
+            industry_idx = industry_idx.to(device)
+        outputs = model(sequences, industry_idx=industry_idx)  # [batch, max_stocks] 预测分数
         
         # 应用mask，只考虑有效股票
         masked_outputs = outputs * masks + (1 - masks) * (-1e9)  # 无效位置设为很小的值
@@ -395,8 +432,11 @@ def evaluate_ranking_model(model, dataloader, criterion, device, writer, epoch):
             masks = batch['masks'].to(device)
             
             # 模型预测
-            outputs = model(sequences)
-            
+            industry_idx = batch.get('industry_idx', None)
+            if industry_idx is not None:
+                industry_idx = industry_idx.to(device)
+            outputs = model(sequences, industry_idx=industry_idx)
+
             # 应用mask
             masked_outputs = outputs * masks + (1 - masks) * (-1e9)
             masked_targets = targets * masks
@@ -564,19 +604,35 @@ def main():
     else:
         device = torch.device('cpu')
     
-    # 1. 数据加载
-    data_file = os.path.join(data_path, 'train.csv')
+    # 1. 数据加载（优先使用合并后的多维数据）
+    merged_file = os.path.join(data_path, 'stock_data_merged.csv')
+    if os.path.exists(merged_file):
+        data_file = merged_file
+        print(f"使用合并数据: {merged_file}")
+    else:
+        data_file = os.path.join(data_path, 'train.csv')
+        print(f"使用基础数据: {data_file}")
+
     full_df = pd.read_csv(data_file)
+    full_df['股票代码'] = full_df['股票代码'].astype(str).str.zfill(6)
     train_df, val_df, val_start = split_train_val_by_last_month(full_df, config['sequence_length'])
-    
+
     # 获取所有股票ID，建立映射
     all_stock_ids = full_df['股票代码'].unique()
     stockid2idx = {sid: idx for idx, sid in enumerate(sorted(all_stock_ids))}
     num_stocks = len(stockid2idx)
-    
-    # 2. 特征工程与预处理
-    train_data, features = preprocess_data(train_df, is_train=True, stockid2idx=stockid2idx)
-    val_data, _ = preprocess_val_data(val_df, stockid2idx=stockid2idx)
+
+    # 2. 特征工程与预处理（含行业分类）
+    industry_vocab = {}
+    train_data, features, industry_vocab = preprocess_data(
+        train_df, is_train=True, stockid2idx=stockid2idx, industry_vocab=None
+    )
+    val_data, _, _ = preprocess_val_data(
+        val_df, stockid2idx=stockid2idx, industry_vocab=industry_vocab
+    )
+    num_industries = max(len(industry_vocab) + 1, 2)
+    print(f"行业数: {num_industries - 1}, 行业vocab: {industry_vocab}")
+    joblib.dump(industry_vocab, os.path.join(output_dir, 'industry_vocab.pkl'))
     
     # 3. 标准化
     scaler = StandardScaler()
@@ -593,26 +649,30 @@ def main():
 
     
     # 4. 创建排序数据集
-    train_sequences, train_targets, train_relevance, train_stock_indices = create_ranking_dataset_vectorized(
-        train_data,
-        features,
-        config['sequence_length'],
-        ranking_data_path=config.get('train_ranking_data_path')
-    )
-    val_sequences, val_targets, val_relevance, val_stock_indices = create_ranking_dataset_vectorized(
-        val_data,
-        features,
-        config['sequence_length'],
-        ranking_data_path=config.get('val_ranking_data_path'),
-        min_window_end_date=val_start.strftime('%Y-%m-%d')
-    )
+    train_sequences, train_targets, train_relevance, train_stock_indices, train_industry = \
+        create_ranking_dataset_vectorized(
+            train_data,
+            features,
+            config['sequence_length'],
+            ranking_data_path=config.get('train_ranking_data_path')
+        )
+    val_sequences, val_targets, val_relevance, val_stock_indices, val_industry = \
+        create_ranking_dataset_vectorized(
+            val_data,
+            features,
+            config['sequence_length'],
+            ranking_data_path=config.get('val_ranking_data_path'),
+            min_window_end_date=val_start.strftime('%Y-%m-%d')
+        )
 
     print(f"训练集样本数: {len(train_sequences)}")
     print(f"验证集样本数: {len(val_sequences)}")
-    
+
     # 5. 创建排序数据集和数据加载器
-    train_dataset = RankingDataset(train_sequences, train_targets, train_relevance, train_stock_indices)
-    val_dataset = RankingDataset(val_sequences, val_targets, val_relevance, val_stock_indices)
+    train_dataset = RankingDataset(train_sequences, train_targets, train_relevance,
+                                   train_stock_indices, train_industry)
+    val_dataset = RankingDataset(val_sequences, val_targets, val_relevance,
+                                 val_stock_indices, val_industry)
     
     train_loader = DataLoader(
         train_dataset, 
@@ -633,7 +693,8 @@ def main():
     )
     
     # 6. 模型初始化
-    model = StockTransformer(input_dim=len(features), config=config, num_stocks=num_stocks)
+    model = StockTransformer(input_dim=len(features), config=config, num_stocks=num_stocks,
+                             num_industries=num_industries)
     model.to(device)
     print(f"模型参数量: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
     
