@@ -17,6 +17,9 @@ config = {
     'pairwise_weight': 2,    # 加强排序
     'base_weight': 1.0,
     'top5_weight': 4.0,      # 重点抓赚钱股票
+    'time_decay': 1.0,       # 时间衰减系数，1.0=不衰减；0.5=1年半衰期
+    'weight_decay': 1e-5,
+    'train_start_date': '2024-01-01',  # 训练数据起始日期，过滤更早的数据
 
     'output_dir': f'./model/{sequence_length}_{feature_num}',
     'data_path': './data',

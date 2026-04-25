@@ -30,9 +30,6 @@ feature_cloums_map = {
     '39': ['instrument','开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅','sma_5', 'sma_20', 'ema_12', 'ema_26', 'rsi', 'macd', 'macd_signal', 'volume_change', 'obv','volume_ma_5', 'volume_ma_20', 'volume_ratio', 'kdj_k', 'kdj_d', 'kdj_j', 'boll_mid', 'boll_std', 'atr_14', 'ema_60', 'volatility_10', 'volatility_20', 'return_1', 'return_5', 'return_10',  'high_low_spread', 'open_close_spread', 'high_close_spread', 'low_close_spread'],
 
     '158+39': ['instrument','开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅',
-               '市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM',
-               'ROE_avg', '净利率', 'EPS_TTM', '净利同比', '权益同比', '资产负债率',
-               'CPI_同比', 'CPI_环比', 'PMI_制造业', 'M2_同比', 'SHIBOR_ON', 'QVIX', '涨停家数', '连板均值', '封单资金均值',
                'KMID', 'KLEN', 'KMID2', 'KUP', 'KUP2', 'KLOW', 'KLOW2', 'KSFT', 'KSFT2', 'OPEN0', 'HIGH0', 'LOW0', 'VWAP0', 'ROC5', 'ROC10', 'ROC20', 'ROC30', 'ROC60', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', 'STD5', 'STD10', 'STD20', 'STD30', 'STD60', 'BETA5', 'BETA10', 'BETA20', 'BETA30', 'BETA60', 'RSQR5', 'RSQR10', 'RSQR20', 'RSQR30', 'RSQR60', 'RESI5', 'RESI10', 'RESI20', 'RESI30', 'RESI60', 'MAX5', 'MAX10', 'MAX20', 'MAX30', 'MAX60', 'MIN5', 'MIN10', 'MIN20', 'MIN30', 'MIN60', 'QTLU5', 'QTLU10', 'QTLU20', 'QTLU30', 'QTLU60', 'QTLD5', 'QTLD10', 'QTLD20', 'QTLD30', 'QTLD60', 'RANK5', 'RANK10', 'RANK20', 'RANK30', 'RANK60', 'RSV5', 'RSV10', 'RSV20', 'RSV30', 'RSV60', 'IMAX5', 'IMAX10', 'IMAX20', 'IMAX30', 'IMAX60', 'IMIN5', 'IMIN10', 'IMIN20', 'IMIN30', 'IMIN60', 'IMXD5', 'IMXD10', 'IMXD20', 'IMXD30', 'IMXD60', 'CORR5', 'CORR10', 'CORR20', 'CORR30', 'CORR60', 'CORD5', 'CORD10', 'CORD20', 'CORD30', 'CORD60', 'CNTP5', 'CNTP10', 'CNTP20', 'CNTP30', 'CNTP60', 'CNTN5', 'CNTN10', 'CNTN20', 'CNTN30', 'CNTN60', 'CNTD5', 'CNTD10', 'CNTD20', 'CNTD30', 'CNTD60', 'SUMP5', 'SUMP10', 'SUMP20', 'SUMP30', 'SUMP60', 'SUMN5', 'SUMN10', 'SUMN20', 'SUMN30', 'SUMN60', 'SUMD5', 'SUMD10', 'SUMD20', 'SUMD30', 'SUMD60', 'VMA5', 'VMA10', 'VMA20', 'VMA30', 'VMA60', 'VSTD5', 'VSTD10', 'VSTD20', 'VSTD30', 'VSTD60', 'WVMA5', 'WVMA10', 'WVMA20', 'WVMA30', 'WVMA60', 'VSUMP5', 'VSUMP10', 'VSUMP20', 'VSUMP30', 'VSUMP60', 'VSUMN5', 'VSUMN10', 'VSUMN20', 'VSUMN30', 'VSUMN60', 'VSUMD5', 'VSUMD10', 'VSUMD20', 'VSUMD30', 'VSUMD60','sma_5', 'sma_20', 'ema_12', 'ema_26', 'rsi', 'macd', 'macd_signal', 'volume_change', 'obv', 'volume_ma_5', 'volume_ma_20', 'volume_ratio', 'kdj_k', 'kdj_d', 'kdj_j', 'boll_mid', 'boll_std', 'atr_14', 'ema_60', 'volatility_10', 'volatility_20', 'return_1', 'return_5', 'return_10',  'high_low_spread', 'open_close_spread', 'high_close_spread', 'low_close_spread']
 }
 feature_engineer_func_map = {
@@ -55,6 +52,22 @@ def _build_label_and_clean(processed, drop_small_open=True):
 
     processed.drop(columns=['open_t1', 'open_t5'], inplace=True)
     return processed
+
+
+def _add_cross_sectional_rank(processed, val_cols, suffix='_分位'):
+    """对估值列按日期计算截面百分位排名，生成新的区分度特征。"""
+    new_cols = []
+    for col in val_cols:
+        rank_col = col + suffix
+        if col in processed.columns and processed[col].notna().any():
+            processed[rank_col] = processed.groupby('日期')[col].rank(pct=True).fillna(0.5)
+        else:
+            processed[rank_col] = 0.0
+        new_cols.append(rank_col)
+    return new_cols
+
+
+VAL_COLS = ['市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM']
 
 
 def _preprocess_common(df, stockid2idx, desc, drop_small_open=True, industry_vocab=None):
@@ -91,6 +104,10 @@ def _preprocess_common(df, stockid2idx, desc, drop_small_open=True, industry_voc
     for col in feature_columns:
         if col not in processed.columns:
             processed[col] = 0.0
+
+    # 截面分位数特征（基线对比：禁用）
+    # rank_cols = _add_cross_sectional_rank(processed, VAL_COLS)
+    # feature_columns = feature_columns + rank_cols
 
     # 映射股票索引，并剔除映射失败样本
     processed['instrument'] = processed['股票代码'].map(stockid2idx)
@@ -252,12 +269,13 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
 
 class RankingDataset(torch.utils.data.Dataset):
     """排序数据集类"""
-    def __init__(self, sequences, targets, relevance_scores, stock_indices, industry_indices=None):
+    def __init__(self, sequences, targets, relevance_scores, stock_indices, industry_indices=None, sample_weights=None):
         self.sequences = sequences
         self.targets = targets
         self.relevance_scores = relevance_scores
         self.stock_indices = stock_indices
         self.industry_indices = industry_indices  # [num_dates, max_stocks] or None
+        self.sample_weights = sample_weights
 
     def __len__(self):
         return len(self.sequences)
@@ -271,6 +289,8 @@ class RankingDataset(torch.utils.data.Dataset):
         }
         if self.industry_indices is not None:
             item['industry_idx'] = torch.LongTensor(self.industry_indices[idx])
+        if self.sample_weights is not None:
+            item['sample_weight'] = torch.FloatTensor([self.sample_weights[idx]])
         return item
 
 def collate_fn(batch):
@@ -280,6 +300,7 @@ def collate_fn(batch):
     relevance = [item['relevance'] for item in batch]
     stock_indices = [item['stock_indices'] for item in batch]
     has_industry = 'industry_idx' in batch[0]
+    has_weight = 'sample_weight' in batch[0]
 
     # 找到最大股票数量
     max_stocks = max(seq.size(0) for seq in sequences)
@@ -290,6 +311,7 @@ def collate_fn(batch):
     padded_relevance = []
     padded_stock_indices = []
     padded_industry_idx = []
+    padded_weights = []
     masks = []
 
     for i, (seq, tgt, rel, stock_idx) in enumerate(zip(sequences, targets, relevance, stock_indices)):
@@ -327,6 +349,9 @@ def collate_fn(batch):
                 ind = torch.cat([ind, ind_pad], dim=0)
             padded_industry_idx.append(ind)
 
+        if has_weight:
+            padded_weights.append(batch[i]['sample_weight'])
+
     result = {
         'sequences': torch.stack(padded_sequences),
         'targets': torch.stack(padded_targets),
@@ -336,6 +361,8 @@ def collate_fn(batch):
     }
     if has_industry:
         result['industry_idx'] = torch.stack(padded_industry_idx)
+    if has_weight:
+        result['sample_weight'] = torch.cat(padded_weights, dim=0)
     return result
 
 # 排序训练函数
@@ -352,6 +379,9 @@ def train_ranking_model(model, dataloader, criterion, optimizer, device, epoch, 
         masks = batch['masks'].to(device)            # [batch, max_stocks] 有效位置mask
         
         optimizer.zero_grad()
+
+        # 时间衰减权重
+        sample_weight = batch.get('sample_weight', None)
 
         # 模型预测
         industry_idx = batch.get('industry_idx', None)
@@ -385,6 +415,8 @@ def train_ranking_model(model, dataloader, criterion, optimizer, device, epoch, 
             if len(valid_pred) > 1:
                 # 直接使用预处理好的相关性得分，无需重新计算
                 loss = criterion(valid_pred.unsqueeze(0), valid_relevance.unsqueeze(0))
+                if sample_weight is not None:
+                    loss = loss * sample_weight[i]
                 batch_loss = batch_loss + loss if isinstance(batch_loss, torch.Tensor) else loss
         
         if batch_loss is not None:
@@ -615,6 +647,13 @@ def main():
 
     full_df = pd.read_csv(data_file)
     full_df['股票代码'] = full_df['股票代码'].astype(str).str.zfill(6)
+
+    # 按配置的起始日期过滤数据
+    train_start = config.get('train_start_date')
+    if train_start:
+        full_df['日期'] = pd.to_datetime(full_df['日期'])
+        full_df = full_df[full_df['日期'] >= pd.to_datetime(train_start)].copy()
+        print(f"数据起始日期过滤: {train_start}, 过滤后 {len(full_df)} 行")
     train_df, val_df, val_start = split_train_val_by_last_month(full_df, config['sequence_length'])
 
     # 获取所有股票ID，建立映射
@@ -649,20 +688,22 @@ def main():
 
     
     # 4. 创建排序数据集
-    train_sequences, train_targets, train_relevance, train_stock_indices, train_industry = \
+    train_sequences, train_targets, train_relevance, train_stock_indices, train_industry, train_weights = \
         create_ranking_dataset_vectorized(
             train_data,
             features,
             config['sequence_length'],
-            ranking_data_path=config.get('train_ranking_data_path')
+            ranking_data_path=config.get('train_ranking_data_path'),
+            time_decay=config.get('time_decay', 0.5)
         )
-    val_sequences, val_targets, val_relevance, val_stock_indices, val_industry = \
+    val_sequences, val_targets, val_relevance, val_stock_indices, val_industry, _ = \
         create_ranking_dataset_vectorized(
             val_data,
             features,
             config['sequence_length'],
             ranking_data_path=config.get('val_ranking_data_path'),
-            min_window_end_date=val_start.strftime('%Y-%m-%d')
+            min_window_end_date=val_start.strftime('%Y-%m-%d'),
+            time_decay=1.0  # 验证集不加衰减，均匀评估
         )
 
     print(f"训练集样本数: {len(train_sequences)}")
@@ -670,7 +711,7 @@ def main():
 
     # 5. 创建排序数据集和数据加载器
     train_dataset = RankingDataset(train_sequences, train_targets, train_relevance,
-                                   train_stock_indices, train_industry)
+                                   train_stock_indices, train_industry, train_weights)
     val_dataset = RankingDataset(val_sequences, val_targets, val_relevance,
                                  val_stock_indices, val_industry)
     
@@ -706,7 +747,7 @@ def main():
         pairwise_weight=config['pairwise_weight'],
         base_weight=config.get('base_weight', 1.0)
     )  # 使用加权排序损失
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config.get('weight_decay', 1e-3))
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.2, total_iters=config['num_epochs'])
     
     # 8. 排序模型训练

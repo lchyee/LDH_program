@@ -525,7 +525,7 @@ def create_dataset(data, features, sequence_length, ranking_data_path=None):
     """保持原有接口，但内部调用新的排序数据集创建函数"""
     return create_ranking_dataset_multiprocess(data, features, sequence_length, ranking_data_path)
 
-def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_data_path=None, min_window_end_date=None):
+def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_data_path=None, min_window_end_date=None, time_decay=0.5):
     """
     向量化加速版本：预计算每只股票的所有滑动窗口，再按日期聚合。
     保持与原函数完全相同的输出格式。
@@ -605,6 +605,7 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
     relevance_scores = []
     stock_indices = []
     industry_indices = [] if has_industry else None
+    sample_dates = []  # 收集每个样本的日期，用于时间衰减权重
 
     print("Step 3: 构建每日样本并计算 relevance...")
     grouped_by_date = window_df.groupby('date')
@@ -634,6 +635,7 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
         targets.append(day_targets)
         relevance_scores.append(relevance)
         stock_indices.append(day_stocks)
+        sample_dates.append(pd.Timestamp(date))
         if has_industry:
             industry_indices.append(group['industry_idx'].values.astype(np.int64))
 
@@ -647,4 +649,16 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
     #     joblib.dump((sequences, targets, relevance_scores, stock_indices), ranking_data_path)
     #     print(f"数据集已保存到: {ranking_data_path}")
 
-    return sequences, targets, relevance_scores, stock_indices, industry_indices
+    # 7. 时间衰减权重：越近的日期权重越高，1年半衰期
+    sample_weights = None
+    if len(sample_dates) > 0 and 0 < time_decay < 1.0:
+        max_date = max(sample_dates)
+        sample_weights = np.array([
+            time_decay ** ((max_date - d).days / 365.0)
+            for d in sample_dates
+        ], dtype=np.float32)
+        print(f"时间衰减权重: time_decay={time_decay}, "
+              f"范围 [{sample_weights.min():.4f}, {sample_weights.max():.4f}], "
+              f"均值 {sample_weights.mean():.4f}")
+
+    return sequences, targets, relevance_scores, stock_indices, industry_indices, sample_weights

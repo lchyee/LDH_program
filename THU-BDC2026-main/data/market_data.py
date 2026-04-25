@@ -1,57 +1,9 @@
-"""爬取宏观指标与市场情绪数据（akshare）"""
+"""爬取市场情绪数据（akshare）"""
 import akshare as ak
 import pandas as pd
 import numpy as np
 import os
 from datetime import datetime, timedelta
-
-
-def fetch_macro_cpi():
-    """CPI 居民消费价格指数"""
-    try:
-        df = ak.macro_china_cpi()
-        # columns: 时间, 全国-同比, 全国-环比, 城市-同比...
-        df = df.rename(columns={'时间': '日期', '全国-同比': 'CPI_同比', '全国-环比': 'CPI_环比'})
-        df['日期'] = pd.to_datetime(df['日期'])
-        return df[['日期', 'CPI_同比', 'CPI_环比']]
-    except Exception as e:
-        print(f"  CPI获取失败: {e}")
-        return None
-
-
-def fetch_macro_pmi():
-    """PMI 采购经理指数"""
-    try:
-        df = ak.macro_china_pmi()
-        df = df.rename(columns={
-            '月份': '日期',
-            '制造业-指数': 'PMI_制造业',
-            '非制造业-指数': 'PMI_非制造业',
-        })
-        df['日期'] = pd.to_datetime(df['日期'])
-        cols = ['日期'] + [c for c in ['PMI_制造业', 'PMI_非制造业'] if c in df.columns]
-        return df[cols]
-    except Exception as e:
-        print(f"  PMI获取失败: {e}")
-        return None
-
-
-def fetch_macro_m2():
-    """M2 货币供应量"""
-    try:
-        df = ak.macro_china_money_supply()
-        df = df.rename(columns={
-            '月份': '日期',
-            'M2-同比增长': 'M2_同比',
-            'M1-同比增长': 'M1_同比',
-            'M0-同比增长': 'M0_同比',
-        })
-        df['日期'] = pd.to_datetime(df['日期'])
-        cols = ['日期'] + [c for c in ['M2_同比', 'M1_同比', 'M0_同比'] if c in df.columns]
-        return df[cols]
-    except Exception as e:
-        print(f"  M2获取失败: {e}")
-        return None
 
 
 def fetch_macro_shibor():
@@ -109,15 +61,6 @@ def fetch_limit_up_stats(start_date, end_date):
 def merge_all_market_data(start_date, end_date):
     """合并所有市场数据并按日期对齐"""
     dfs = {}
-
-    print("获取 CPI ...")
-    dfs['cpi'] = fetch_macro_cpi()
-
-    print("获取 PMI ...")
-    dfs['pmi'] = fetch_macro_pmi()
-
-    print("获取 M2 ...")
-    dfs['m2'] = fetch_macro_m2()
 
     print("获取 Shibor ...")
     dfs['shibor'] = fetch_macro_shibor()

@@ -22,9 +22,6 @@ feature_cloums_map = {
     ],
     '158+39': [
         'instrument', '开盘', '收盘', '最高', '最低', '成交量', '成交额', '振幅', '涨跌额', '换手率', '涨跌幅',
-        '市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM',
-        'ROE_avg', '净利率', 'EPS_TTM', '净利同比', '权益同比', '资产负债率',
-        'CPI_同比', 'CPI_环比', 'PMI_制造业', 'M2_同比', 'SHIBOR_ON', 'QVIX', '涨停家数', '连板均值', '封单资金均值',
         'KMID', 'KLEN', 'KMID2', 'KUP', 'KUP2', 'KLOW', 'KLOW2', 'KSFT', 'KSFT2', 'OPEN0', 'HIGH0', 'LOW0',
         'VWAP0', 'ROC5', 'ROC10', 'ROC20', 'ROC30', 'ROC60', 'MA5', 'MA10', 'MA20', 'MA30', 'MA60', 'STD5',
         'STD10', 'STD20', 'STD30', 'STD60', 'BETA5', 'BETA10', 'BETA20', 'BETA30', 'BETA60', 'RSQR5', 'RSQR10',
@@ -51,6 +48,22 @@ feature_engineer_func_map = {
     '39': engineer_features_39,
     '158+39': engineer_features_158plus39,
 }
+
+
+def _add_cross_sectional_rank(processed, val_cols, suffix='_分位'):
+    """对估值列按日期计算截面百分位排名，生成新的区分度特征。"""
+    new_cols = []
+    for col in val_cols:
+        rank_col = col + suffix
+        if col in processed.columns and processed[col].notna().any():
+            processed[rank_col] = processed.groupby('日期')[col].rank(pct=True).fillna(0.5)
+        else:
+            processed[rank_col] = 0.0
+        new_cols.append(rank_col)
+    return new_cols
+
+
+VAL_COLS = ['市盈率TTM', '市净率MRQ', '市销率TTM', '市现率TTM']
 
 
 def preprocess_predict_data(df, stockid2idx, industry_vocab=None):
@@ -82,6 +95,10 @@ def preprocess_predict_data(df, stockid2idx, industry_vocab=None):
     for col in feature_columns:
         if col not in processed.columns:
             processed[col] = 0.0
+
+    # 截面分位数特征（基线对比：禁用）
+    # rank_cols = _add_cross_sectional_rank(processed, VAL_COLS)
+    # feature_columns = feature_columns + rank_cols
 
     processed['instrument'] = processed['股票代码'].map(stockid2idx)
     processed = processed.dropna(subset=['instrument']).copy()
@@ -118,15 +135,19 @@ def build_inference_sequences(data, features, sequence_length, stock_ids, latest
 
 
 def main():
-    # 优先使用合并数据
+    # 自评场景优先使用 train.csv（日期范围与训练期对齐，避免预测-评估日期错位）
+    # train.csv 由 split_train_test.py 从 merged CSV 切分而来，已含全部多维特征
     data_path = config['data_path']
+    train_file = os.path.join(data_path, 'train.csv')
     merged_file = os.path.join(data_path, 'stock_data_merged.csv')
-    if os.path.exists(merged_file):
+    if os.path.exists(train_file):
+        data_file = train_file
+        print(f"使用训练集数据: {train_file}")
+    elif os.path.exists(merged_file):
         data_file = merged_file
         print(f"使用合并数据: {merged_file}")
     else:
-        data_file = os.path.join(data_path, 'train.csv')
-        print(f"使用基础数据: {data_file}")
+        raise FileNotFoundError(f'未找到数据文件: {train_file} 或 {merged_file}')
 
     model_path = os.path.join(config['output_dir'], 'best_model.pth')
     scaler_path = os.path.join(config['output_dir'], 'scaler.pkl')
@@ -190,7 +211,7 @@ def main():
     order = np.argsort(scores)[::-1]
     ranked_stock_ids = [sequence_stock_ids[i] for i in order]
 
-    # 仅输出前5，权重固定 0.2
+    # 前5只股票等权分配
     if len(ranked_stock_ids) < 5:
         raise ValueError(f'可预测股票不足5只，当前仅有 {len(ranked_stock_ids)} 只')
     top5 = ranked_stock_ids[:5]
