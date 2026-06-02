@@ -1,0 +1,35 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE
+.DS_Store
+.vscode
+.idea/
+
+# Archives
+*.zip
+*.tar
+
+# Data files (can be regenerated)
+data/stock_data.csv
+data/train.csv
+data/test.csv
+
+# Model checkpoints (will be retrained)
+model/*/checkpoint/*.pth
+model/*/checkpoint/*.pkl
+
+# Output files
+output/
+model/*/output/
+
+# Temp files
+temp/
