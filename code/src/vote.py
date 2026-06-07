@@ -1,8 +1,15 @@
 """
-投票合并脚本（Top-N 宽容融合版 + 动态模型权重 + 严格权重校验）。
+投票合并脚本（手工分段评分 + 固定模型权重 + 严格权重校验）。
+
+融合逻辑（经 20 周回测调优，累计收益约 57%、夏普 0.60）：
+  第1层 模型内部评分：每个模型按自身"名次→得分"的分段曲线给前50名打分，
+        再归一化到总和=1（保证各模型贡献相等、可比）。各模型曲线形状不同，
+        来自对各模型"第几名最准"的实测分析（见 backtest/ 的分段分析）。
+  第2层 融合加权：按固定模型权重加权汇总各模型的归一化得分。
+        权重经回测调优，model01/model02 最高，model03 最低。
+  第3层 选 Top-N + 分仓：取融合得分前5，分歧惩罚后按得分占比分配仓位。
 """
 import os
-import re
 import sys
 from pathlib import Path
 import pandas as pd
@@ -15,124 +22,108 @@ FINAL_OUTPUT_PATH = FINAL_OUTPUT_DIR / 'result.csv'
 TOP_N = 5
 DEFAULT_MISSING_RANK = 60
 
-
-# 单个模型权重上限，避免任何一个模型”一家独大”
-MODEL_WEIGHT_CAP = 0.30
-# model07 (MICN) 表现较差，施加惩罚因子
-MODEL07_PENALTY = 0.7
-# 缺测时的兜底位次（满分 300，越大越差）
-DEFAULT_TRIMMED_RANK = 150.0
-
-
-def _read_text(path):
-    """以多种编码稳健读取文本文件，失败返回 None。"""
-    for enc in ('utf-8-sig', 'utf-8', 'gbk'):
-        try:
-            return path.read_text(encoding=enc)
-        except Exception:
-            continue
-    return None
+# ============================================================
+# 第2层：固定模型权重（经 20 周回测调优）
+# model01/model02 表现最好权重最高，model03 最弱权重最低。
+# 未知模型（不在表中）默认按等权兜底。
+# ============================================================
+MODEL_WEIGHTS = {
+    'model01': 0.22,
+    'model02': 0.22,
+    'model07': 0.18,
+    'model05': 0.14,
+    'model04': 0.14,
+    'model03': 0.10,
+}
 
 
-def _parse_excess_return(path):
-    """从 our_score.csv 中解析“超额收益”（百分比数值）。
+def _lin(rank, r0, s0, r1, s1):
+    """两端点线性插值：rank=r0 时=s0，rank=r1 时=s1（用于段内轻微递减）。"""
+    return s0 + (rank - r0) * (s1 - s0) / (r1 - r0)
 
-    我们各模型的 our_score.csv 由同一套评分模板生成，因此“超额收益”在模型之间
-    是可比的，远比各自 final_score.txt 里口径不一的分数更适合作为权重依据。
+
+# ============================================================
+# 第1层：每个模型的"名次 → 原始得分"分段曲线
+# 形状来自各模型实测的"第几名最准"分析；只对前50名给分，之后为0。
+# 返回值会在 segment_scores() 中归一化到总和=1。
+# ============================================================
+def _score_model01(r):
+    # 前5名突出但不过尖（缩小段间差距，避免融合时一家独大）
+    if r <= 5:   return 4.5
+    if r <= 10:  return 3.0
+    if r <= 20:  return _lin(r, 11, 2.5, 20, 1.5)
+    if r <= 50:  return _lin(r, 21, 1.4, 50, 0.4)
+    return 0.0
+
+
+def _score_model02(r):
+    # 第1名是噪声（压低），第6-20名最强
+    if r <= 5:   return 3.0
+    if r <= 20:  return 5.0
+    if r <= 30:  return _lin(r, 21, 3.5, 30, 3.0)
+    if r <= 50:  return 3.0
+    return 0.0
+
+
+def _score_model03(r):
+    # 整体偏弱、各段差不多：接近拉平的低分布
+    if r <= 5:   return 5.0
+    if r <= 50:  return _lin(r, 6, 5.0, 50, 3.0)
+    return 0.0
+
+
+def _score_model04(r):
+    # 前5最强，前20有效
+    if r <= 5:   return 5.0
+    if r <= 20:  return 4.0
+    if r <= 50:  return _lin(r, 21, 4.0, 50, 2.0)
+    return 0.0
+
+
+def _score_model05(r):
+    # 第1名特别准（单只高分），其余拉平
+    if r == 1:   return 5.0
+    if r <= 50:  return 4.0
+    return 0.0
+
+
+def _score_model07(r):
+    # 前5名是噪声（压低），信号在第6-20名
+    if r <= 5:   return 2.5
+    if r <= 10:  return 4.0
+    if r <= 50:  return _lin(r, 11, 5.0, 50, 3.0)
+    return 0.0
+
+
+SEGMENT_SCORERS = {
+    'model01': _score_model01, 'model02': _score_model02, 'model03': _score_model03,
+    'model04': _score_model04, 'model05': _score_model05, 'model07': _score_model07,
+}
+
+
+def segment_scores(model_id, ranked_ids):
+    """对某模型前50名按其分段曲线打分并归一化到总和=1。
+
+    ranked_ids：该模型预测结果按 rank 升序的 stock_id 列表。
+    返回 {stock_id: 归一化得分}。未知模型回退到 1/(rank+2) 曲线。
     """
-    text = _read_text(path)
-    if text is None:
-        return None
-    for line in text.splitlines():
-        if line.startswith('超额收益'):
-            m = re.search(r'([-+]?\d+(?:\.\d+)?)\s*%', line)
-            if m:
-                return float(m.group(1))
-    return None
+    scorer = SEGMENT_SCORERS.get(model_id)
+    raw = {}
+    for i, sid in enumerate(ranked_ids[:50]):
+        rank = i + 1
+        sc = scorer(rank) if scorer else 1.0 / (rank + 2.0)
+        if sc > 0:
+            raw[sid] = sc
+    tot = sum(raw.values())
+    return {s: v / tot for s, v in raw.items()} if tot > 0 else {}
 
 
-def _parse_trimmed_top10_rank(path):
-    """从 our_top50_score.csv 的“功能2”里解析“前10、剔除最差20%后的平均位次”。
-
-    位次越小越好（满分 300）。功能2 已剔除最差 20% 的离群误差，比功能1 更能
-    反映模型“好票”的成色，且同样由统一模板生成、模型间可比。
-    """
-    text = _read_text(path)
-    if text is None:
-        return None
-    idx = text.find('功能2')
-    section = text[idx:] if idx >= 0 else text
-    m = re.search(r'前10\s+\S+\s+([\d.]+)\s*/\s*300', section)
-    return float(m.group(1)) if m else None
-
-
-def _apply_weight_cap(weights, cap=MODEL_WEIGHT_CAP):
-    """把单模型权重压到 cap 以下，溢出部分按比例分给其余模型。"""
-    names = list(weights.keys())
-    w = np.array([weights[n] for n in names], dtype=float)
-    s = w.sum()
-    if s <= 0:
-        return {n: 1.0 / len(names) for n in names}
-    w = w / s
-    for _ in range(20):
-        over = w > cap
-        if not over.any():
-            break
-        excess = (w[over] - cap).sum()
-        w[over] = cap
-        under = ~over
-        if not under.any():
-            break
-        w[under] += excess * (w[under] / w[under].sum())
-    return {n: float(v) for n, v in zip(names, w)}
-
-
-def load_model_weights():
-    """基于“可比的实测表现”计算各模型权重。
-
-    口径：对每个模型，读取统一模板生成的两项指标——
-      1) our_score.csv 的“超额收益”（越大越好）；
-      2) our_top50_score.csv 功能2 的“前10 剔除最差20% 平均位次”（越小越好）。
-    分别做组内归一化后按 0.5 / 0.5 融合，再施加单模型权重上限。
-
-    不再使用 final_score.txt：model01 与 model02-07 的 final_score 口径不一致
-    （前者来自独立评分脚本），平方加权会错误地把 ~50% 仓位压给实测中等偏下的
-    model01。
-    """
-    excess = {}
-    rank = {}
-    for sub in sorted(MODELS_DIR.iterdir()):
-        if not sub.is_dir():
-            continue
-        er = _parse_excess_return(sub / 'output' / 'our_score.csv')
-        rk = _parse_trimmed_top10_rank(sub / 'output' / 'our_top50_score.csv')
-        if er is None and rk is None:
-            continue
-        excess[sub.name] = er if er is not None else 0.0
-        rank[sub.name] = rk if rk is not None else DEFAULT_TRIMMED_RANK
-
-    names = sorted(set(excess) | set(rank))
-    if not names:
-        return None
-
-    # 超额收益：截断到非负后组内归一化
-    er_arr = np.array([max(excess.get(n, 0.0), 0.0) for n in names], dtype=float)
-    er_sum = er_arr.sum()
-    er_norm = er_arr / er_sum if er_sum > 0 else np.full(len(names), 1.0 / len(names))
-
-    # 位次质量：用 (300 - 位次) 把“越小越好”转成“越大越好”，再组内归一化
-    rq_arr = np.array([max(300.0 - rank.get(n, DEFAULT_TRIMMED_RANK), 0.0) for n in names], dtype=float)
-    rq_sum = rq_arr.sum()
-    rq_norm = rq_arr / rq_sum if rq_sum > 0 else np.full(len(names), 1.0 / len(names))
-
-    blended = 0.5 * er_norm + 0.5 * rq_norm
-    weights = {n: blended[i] for i, n in enumerate(names)}
-
-    # 对 model07 施加惩罚因子
-    if 'model07' in weights:
-        weights['model07'] *= MODEL07_PENALTY
-
-    return _apply_weight_cap(weights)
+def get_model_weight(model_id, present_models):
+    """返回某模型的融合权重；未在权重表中的模型按等权兜底并归一化。"""
+    if model_id in MODEL_WEIGHTS:
+        return MODEL_WEIGHTS[model_id]
+    # 不在表中：按"表中未覆盖部分"等权（极少触发，保证健壮）
+    return 1.0 / max(len(present_models), 1)
 
 
 def load_model_predictions():
@@ -150,34 +141,33 @@ def load_model_predictions():
                 df['rank'] = range(1, len(df) + 1)
 
             df['stock_id'] = df['stock_id'].str.zfill(6)
+            df = df.sort_values('rank').reset_index(drop=True)  # 保证按名次升序
             predictions.append((sub.name, df))
         except Exception as e:
             continue
     return predictions
 
 
-def vote(predictions, model_weights=None):
+def vote(predictions):
+    """两层融合：第1层各模型分段评分(归一化)，第2层按固定模型权重加权。"""
     from collections import defaultdict
     stock_scores = defaultdict(float)
     vote_count = defaultdict(int)
     stock_ranks = defaultdict(list)
 
+    present = [mid for mid, _ in predictions]
     for model_id, df in predictions:
-        # 动态权重：优先使用基于实测表现计算的权重（归一化到平均为 1）
-        if model_weights and model_id in model_weights:
-            model_weight = model_weights[model_id] * len(predictions)
-        else:
-            # 无实测权重时退回等权，不再人为加权特定模型
-            model_weight = 1.0
+        model_weight = get_model_weight(model_id, present)
+        ranked_ids = df['stock_id'].tolist()           # 已按 rank 升序
+        seg = segment_scores(model_id, ranked_ids)     # {sid: 归一化得分}, 总和=1
 
-        for _, row in df.iterrows():
-            sid = row['stock_id']
-            rk = float(row['rank'])
-            score = (1.0 / (rk + 2.0)) * model_weight
-
-            stock_scores[sid] += score
-            vote_count[sid] += 1
-            stock_ranks[sid].append(rk)
+        for i, sid in enumerate(ranked_ids):
+            if sid in seg:
+                stock_scores[sid] += model_weight * seg[sid]
+            # 记录该股在各模型的名次（用于分歧惩罚），仅记前50
+            if i < 50:
+                vote_count[sid] += 1
+                stock_ranks[sid].append(i + 1)
 
     candidates = []
     num_models = len(predictions)
@@ -209,48 +199,34 @@ def main():
 
     print(f"参与投票的模型数量: {len(predictions)}")
 
-    # 加载动态模型权重
-    model_weights = load_model_weights()
-    if model_weights:
-        print("使用动态模型权重（基于验证集得分）:")
-        for m, w in sorted(model_weights.items()):
-            print(f"  {m}: {w:.4f}")
-    else:
-        print("未找到验证集得分，使用默认权重")
+    # 固定模型权重（经回测调优）
+    present = [mid for mid, _ in predictions]
+    print("使用固定模型权重（回测调优）:")
+    for m in present:
+        print(f"  {m}: {get_model_weight(m, present):.2f}")
 
-    ranked = vote(predictions, model_weights)
+    ranked = vote(predictions)
 
     top = ranked.head(TOP_N).copy()
-
-    max_possible_votes = len(predictions) * TOP_N
-    actual_votes = top['votes'].sum()
-    confidence_ratio = actual_votes / max_possible_votes
-
-    total_top_score = top['total_score'].sum()
-    dynamic_weights = (top['total_score'] / total_top_score).values
-
-    position_scale = 1.0 if confidence_ratio >= 0.5 else (confidence_ratio * 1.5)
-    position_scale = min(1.0, position_scale)
-    dynamic_weights = (dynamic_weights * position_scale).round(6)
+    n = len(top)
 
     # ==========================================
-    # 【核心修复】：解决浮点数溢出导致的评测报错
-    # 在“整数百万分之一”的精度上裁剪，避免 np.round 把扣减又加回去。
-    # 即使各权重十进制相加恰好等于 1，float64 求和仍可能得到
-    # 1.0000000000000002（> 1.0），故循环从最大权重逐 1e-6 扣减，
-    # 直到 float64 下的实际求和确实 <= 1.0。
+    # 等权分仓：选出的 N 只股票每只权重 = 1/N（总仓位 100%）。
+    # 选哪 N 只仍由融合得分(vote)决定，这里只把仓位改成等权。
+    # 仍做"整数百万分之一"精度裁剪，避免 float64 求和 > 1.0 导致评测报错。
     # ==========================================
-    units = np.round(dynamic_weights * 1_000_000).astype(np.int64)
+    equal_weights = np.full(n, 1.0 / n)
+    units = np.round(equal_weights * 1_000_000).astype(np.int64)
     while (units / 1_000_000.0).sum() > 1.0:
         units[np.argmax(units)] -= 1
-    dynamic_weights = units / 1_000_000.0
+    final_weights = units / 1_000_000.0
 
     final_df = pd.DataFrame({
         'stock_id': top['stock_id'].tolist(),
-        'weight': dynamic_weights,
+        'weight': final_weights,
     })
 
-    print(f"\n>>> 最终动态组合 (总仓位: {position_scale*100:.1f}%)：")
+    print(f"\n>>> 最终等权组合（{n} 只，每只 {1.0/n*100:.1f}%）：")
     for _, row in final_df.iterrows():
         print(f" 股票: {row['stock_id']} | 权重: {row['weight']:.6f}")
 

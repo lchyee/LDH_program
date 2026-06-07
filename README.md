@@ -1,148 +1,221 @@
-# THU-BigDataCompetition-2026-baseline
+# 沪深300 多模型集成选股系统
 
-本项目是一个面向沪深300成分股的**排序学习选股**方案：
-- 输入：每只股票过去一段时间（默认60个交易日）的量价与技术特征序列；
-- 模型：`StockTransformer`，同时建模单股票时序模式与股票间交互；
-- 输出：对同一天全部候选股票打分并排序，最终输出前5只股票（等权重0.2）。
+面向沪深300成分股的**排序学习(learning-to-rank)选股**方案：每个交易日对全部成分股打分排序，
+最终输出 Top5 股票（等权，各 0.2）。本项目采用**多模型集成**架构——6 个不同的深度学习模型
+各自独立排序，再通过投票融合得到最终结果。
 
----
-
-## 1. 项目目标与整体流程
-
-核心目标是学习“当天应优先持有哪些股票”的排序函数，而不是单只股票二分类。
-
-训练与推理主流程如下：
-1. 读取历史行情数据（`data/stock_data.csv`）；
-2. 做特征工程（39特征或`158+39`特征）；
-3. 构建标签：未来收益率（代码中为 `open_t1` 到 `open_t5` 的相对收益）；
-4. 按“日期”组织排序样本：每个样本是一日内多只股票的序列与目标；
-5. 训练排序模型，监控 `final_score` 并保存最优权重；
-6. 使用训练好的 `best_model.pth` + `scaler.pkl` 在最新日期上生成Top5选股结果。
+> 本项目从单模型(StockTransformer)演进为 6 模型集成 + 滚动回测系统。
+> 旧版单模型 README 已废弃，本文档对应当前架构。
 
 ---
 
-## 2. 代码结构说明
-
-### [config.py](config.py)
-统一管理训练与推理参数，包括：
-- 序列长度 `sequence_length`（默认60）；
-- 模型超参数（`d_model`、`nhead`、`num_layers` 等）；
-- 训练超参数（`batch_size`、`num_epochs`、`learning_rate`）；
-- 排序损失权重参数（`pairwise_weight`、`top5_weight`、`base_weight`）；
-- 数据路径和输出路径（默认输出到 `output/`）。
-
-### [model.py](model.py)
-定义核心模型 `StockTransformer`，主要由以下模块组成：
-- `PositionalEncoding`：时序位置编码；
-- 时序编码器 `TransformerEncoder`：提取单股票历史序列表示；
-- `FeatureAttention`：对时间维特征做注意力聚合；
-- `CrossStockAttention`：在同一交易日内建模股票间关系；
-- `ranking_layers` + `score_head`：输出每只股票的排序分数。
-
-输入形状：`[batch, num_stocks, seq_len, feature_dim]`  
-输出形状：`[batch, num_stocks]`。
-
-### [utils.py](utils.py)
-包含特征工程与数据集构建逻辑：
-- `engineer_features_39()`：39个技术指标特征；
-- `engineer_features()`：158个Alpha类特征；
-- `engineer_features_158plus39()`：合并 `158 + 39` 特征；
-- `create_ranking_dataset_vectorized()`：向量化构建按日排序样本（训练核心加速点）。
-
-说明：特征工程使用了 `TA-Lib`，若未正确安装会报错。
-
-### [train.py](train.py)
-训练主脚本，关键内容：
-- 数据预处理：
-	- `_preprocess_common()`：按股票分组并行特征工程、股票ID映射、标签构建；
-	- `split_train_val_by_last_month()`：按最后阶段数据切分训练/验证集，并保留序列上下文。
-- 数据集组织：
-	- `RankingDataset` + `collate_fn`：处理每日股票数量不一致问题（padding + mask）。
-- 损失函数：`WeightedRankingLoss`
-	- 组合了 `listwise_loss` 与 `pairwise_loss`；
-	- 对真实Top-k样本施加更高权重。
-- 评估指标：`calculate_ranking_metrics()`
-	- 计算 `pred_return_sum`、`max_return_sum`、`ratio_pred`、`final_score` 等；
-	- 训练过程中以验证集 `final_score` 选择最优模型。
-
-训练产物：
-- `best_model.pth`：最佳模型参数；
-- `scaler.pkl`：标准化器；
-- `config.json`：训练时配置快照；
-- `final_score.txt`：最佳分数记录；
-- `log/`：TensorBoard日志。
-
-### [predict.py](predict.py)
-推理主脚本，流程：
-1. 加载历史数据，取最新交易日；
-2. 执行与训练一致的特征工程；
-3. 加载 `scaler.pkl` 进行特征标准化；
-4. 用 `best_model.pth` 对全部可预测股票打分；
-5. 按分数降序取前5只，输出到 `output.csv`：
-	 - `stock_id`
-	 - `weight`（固定 `0.2`）
-
-### [get_stock_data.py](get_stock_data.py)
-数据抓取脚本（Baostock）：
-- 获取沪深300成分股；
-- 抓取历史日线数据并保存为训练所需格式。
-
----
-
-## 3. 数据与输入输出约定
-
-默认训练数据文件：
-- `data/train.csv`
-
-关键列：
-- `股票代码`、`日期`、`开盘`、`收盘`、`最高`、`最低`、`成交量`、`成交额`、`换手率`、`涨跌幅` 等。
-
-预测输出文件：
-- output目录下 `result.csv`（由 `predict.py` 生成）。
-
----
-
-## 4. 运行方法（推荐使用 uv）
-
-1) 使用 `uv` 安装依赖
-
-`uv sync`
-
-2) 激活虚拟环境
-
-`source .venv/bin/activate`
-
-3) 训练模型
+## 1. 整体架构
 
 ```
-sh train.sh
+原始行情(stock_data.csv)
+        │  split_train_test.py 按日期切分
+        ▼
+   train.csv  ──────────────┐
+        │                   │
+        ▼                   ▼
+  6 个模型各自训练      6 个模型各自预测
+  (train.py 调度)      (test.py 调度)
+        │                   │
+        ▼                   ▼
+  各模型 result.csv ──► vote.py 投票融合 ──► output/result.csv (最终Top5)
 ```
 
-4) 生成预测结果
+**核心理念**：不同模型有不同的"选股性格"(有的擅长抓最强的几只、有的擅长前20名)，
+集成投票综合它们的判断，比单一模型更稳健。
 
+### 6 个模型
+
+| 模型目录 | 算法 | 特点 |
+|---|---|---|
+| `model/model01` | StockTransformer(自定义) | 时序编码 + 股票间交互注意力，序列长度60 |
+| `model/model02` | iTransformer | 倒置 Transformer，序列长度20 |
+| `model/model03` | DLinear | 线性分解模型，轻量 |
+| `model/model04` | TimesNet | 时序周期建模 |
+| `model/model05` | TiDE | 长期依赖编码 |
+| `model/model07` | MICN | 多尺度卷积，序列长度40 |
+
+每个模型目录结构统一：
 ```
-sh test.sh
+model/modelXX/
+├── src/
+│   ├── train.py      训练脚本（读 data/train.csv，输出到 checkpoint/）
+│   ├── predict.py    预测脚本（读 data/train.csv，输出 output/result.csv）
+│   └── <算法>.py     模型定义
+├── checkpoint/       训练产物：best_model.pth, scaler.pkl, feature_cols.pkl
+└── output/           预测产物：result.csv（该模型的全量排名）
 ```
 
 ---
 
-## 5. 常见问题
+## 2. 目录结构
 
-1) `TA-Lib` 安装失败  
-本项目特征工程依赖 `TA-Lib`，需要先安装系统层面的 `ta-lib` 库，再安装Python包。
 ```
+THU-BDC2026-5/
+├── data/
+│   ├── stock_data.csv          原始行情（全部历史，get_stock_data.py 抓取）
+│   ├── train.csv / test.csv    split_train_test.py 切分产物
+│   ├── split_train_test.py     按日期切分训练/测试集
+│   └── hs300_stock_list.csv    成分股代码↔名称对照
+├── model/                      6 个模型（见上）
+├── shared_components/          模型共享组件
+│   ├── feature_utils.py        统一特征工程（158 Alpha + 39 技术指标 + 市场相对特征）
+│   ├── layers/                 Transformer 等网络层
+│   └── nn_utils/               训练辅助
+├── code/src/
+│   ├── train.py                训练调度器：发现 model/ 下所有模型并逐个训练
+│   ├── test.py                 预测调度器：逐个预测 + 调 vote.py 融合
+│   ├── vote.py                 投票融合（核心，见第4节）
+│   └── featurework.py          特征工程入口
+├── backtest/                   滚动重训回测系统（见 backtest/README.md）
+├── test/                       赛事方评分脚本（score_self.py 等）
+├── output/result.csv           最终融合结果（提交用）
+├── train.sh / test.sh          一键训练 / 一键预测
+├── Dockerfile / docker-compose.yml   容器化打包
+└── get_stock_data.py           数据抓取（Baostock）
+```
+
+---
+
+## 3. 完整运行流程
+
+### 环境准备
+
+```bash
+# 方式1：uv（推荐）
+uv sync && source .venv/bin/activate
+
+# 方式2：conda/pip
+pip install pandas numpy scikit-learn matplotlib joblib torch
+conda install -c conda-forge ta-lib    # TA-Lib 需系统库，conda 最省事
+```
+
+### 标准流程
+
+```bash
+# 1. 抓取数据（首次/更新时）
+python get_stock_data.py
+
+# 2. 切分训练/测试集（决定"预测哪几天"——见下方说明）
+python data/split_train_test.py --train-end 2026-05-29 --test-start 2026-06-01 --test-end 2026-06-05
+
+# 3. 训练全部 6 个模型
+bash train.sh        # = python code/src/train.py
+
+# 4. 预测 + 投票融合
+bash test.sh         # = python code/src/test.py，最终结果在 output/result.csv
+```
+
+### 关于"预测哪几天"
+
+**只有 `split_train_test.py` 决定预测日期**，train.py/test.py 都只读 `train.csv`、不关心日期：
+- `--train-end` = **预测基准日**：模型用截止到这天的数据，预测之后5个交易日
+- `--test-start/--test-end` = 评测区间（仅本地用 score_self.py 算分，不影响预测）
+
+例：`--train-end 2026-05-29` → 模型基于 5/29 及之前的数据，预测 6/1~6/5 的最优5只。
+
+---
+
+## 4. 投票融合机制（code/src/vote.py）
+
+最终的 5 只股票由投票融合产生，分三层（经 20 周回测调优，累计约 53%、夏普 0.71）：
+
+### 第1层：模型内部分段评分
+每个模型对自己预测的前 50 名按"名次→得分"的**分段曲线**打分，再归一化到总和=1
+（保证各模型贡献相等、可比）。各模型曲线形状不同，来自对该模型"第几名最准"的实测分析：
+
+| 模型 | 分段特点（依据实测） |
+|---|---|
+| model01 | 前5名最高(4.5)、6-10名(3.0)、之后递减——前排最准 |
+| model02 | 第1-5名压低(3.0)、6-20名最高(5.0)——好票分散在前20 |
+| model03 | 整体平缓(5.0→3.0)——各档差不多 |
+| model04 | 前5最高(5.0)、6-20名(4.0) |
+| model05 | 第1名独高(5.0)、其余拉平(4.0)——最自信一只最准 |
+| model07 | 前5名压低(2.5)、6名起升高——前5是噪声，信号在中段 |
+
+### 第2层：固定模型权重
+按各模型整体表现分配固定权重（回测调优）：
+
+| 模型 | 权重 |
+|---|---|
+| model01 / model02 | 各 22% |
+| model07 | 18% |
+| model04 / model05 | 各 14% |
+| model03 | 10% |
+
+最终得分 = Σ(模型权重 × 该模型归一化分段得分)。
+
+### 第3层：选 Top5 + 等权分仓
+取融合得分最高的 5 只，**等权分配（各 0.2）**，输出到 `output/result.csv`。
+（含分歧惩罚：某股在各模型间名次分歧过大时降分。）
+
+> 注：分段曲线和权重是在**本项目这 6 个模型、特定时间段**上调出的，换一套模型需重新分析。
+
+---
+
+## 5. 特征与标签
+
+**特征**（`shared_components/feature_utils.py` 统一生成）：
+- 158 个 Alpha 类因子（量价衍生）
+- 39 个 TA-Lib 技术指标（MACD、RSI、布林带等）
+- 市场相对特征（个股 vs 当日市场均值的超额、排名等，用于横截面比较）
+
+**标签**：未来 5 个交易日的**超额收益**
+- `raw_return = (open_t5 - open_t1) / open_t1`（次日开盘买、第5日开盘卖）
+- `target = raw_return - 当日市场平均`（学的是"跑赢市场"，不是绝对涨跌）
+- 由 `shift(-5) + dropna` 构造，末尾需要未来数据的样本自动丢弃 → **天然防泄露**
+
+**收益口径**与赛事方 `test/score_self.py` 一致：(末日开盘−首日开盘)/首日开盘，按权重加权。
+
+---
+
+## 6. 回测系统（backtest/）
+
+独立的**滚动重训回测**：从某年第1周到最后一周，每周用"该周之前的全部数据"重新训练全部模型、
+预测、融合、评分，与沪深300基准对比。核心保证**无未来数据泄露**，结果可信。
+
+```bash
+bash backtest/run_cloud.sh    # 一键：回测全部周 + 出图 + 出报表
+```
+
+产出：累计净值曲线、每周涨幅图、Alpha/Beta 选股能力诊断、逐周逐模型明细报表等，
+全部在 `backtest/results/`。详见 [backtest/README.md](backtest/README.md)。
+
+---
+
+## 7. Docker 打包（赛事提交）
+
+```bash
+docker compose build          # 构建镜像
+docker compose run --rm app   # 运行（训练+预测）
+```
+
+`Dockerfile` 已配置国内镜像源加速依赖安装。详见 [GUIDE.md](GUIDE.md)。
+
+---
+
+## 8. 常见问题
+
+**TA-Lib 安装失败**：需先装系统层 ta-lib 库。Linux 源码安装：
+```bash
 wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
-    tar -xzf ta-lib-0.4.0-src.tar.gz && \
-    cd ta-lib && \
-    ./configure --prefix=/usr && \
-    make -j1 && \
-    make install && \
-    cd .. && \
-    rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
+  tar -xzf ta-lib-0.4.0-src.tar.gz && cd ta-lib && \
+  ./configure --prefix=/usr && make -j1 && make install && cd .. && \
+  rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
 ```
+或直接 `conda install -c conda-forge ta-lib`。
 
-2) 多进程相关问题  
-`train.py` 与 `predict.py` 均在入口使用了 `spawn` 模式，Linux/macOS下请保持通过脚本入口运行（不要在交互式环境里直接多进程调用主逻辑）。
+**某个模型训练/预测失败**：调度器会跳过该模型继续跑其余模型，不影响整体；日志会标注。
 
-3) GPU/CPU自动选择  
-代码会按 `CUDA -> MPS -> CPU` 顺序自动选择设备；无GPU时可直接CPU运行。
+**GPU/CPU 选择**：自动按 CUDA → CPU 选择，无 GPU 也能跑（慢）。
+5系新卡(Blackwell)需 CUDA 12.8+。
+
+**多进程**：train.py/predict.py 用 spawn 模式，请通过脚本入口运行，勿在交互环境直接多进程调用。
+
+**数据/模型权重不在 git 里**：`data/*.csv`、`checkpoint/*.pth` 等被 .gitignore 排除，
+clone 后需重新抓数据+训练。
+

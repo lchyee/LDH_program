@@ -1,0 +1,297 @@
+{
+  "week_idx": 3,
+  "iso_week": "2026-W4",
+  "base_date": "2026-01-16",
+  "d1": "2026-01-19",
+  "dk": "2026-01-23",
+  "n_days": 5,
+  "benchmark_return": 0.011544894959834073,
+  "models": {
+    "model01": {
+      "top_n_return": -0.010119761397028585,
+      "excess_return": -0.02166465635686266,
+      "top_n_detail": [
+        {
+          "stock_id": "601899",
+          "return": 0.020467836257310034,
+          "rank": 82,
+          "total": 300,
+          "percentile": 72.67
+        },
+        {
+          "stock_id": "601698",
+          "return": -0.002301790281329924,
+          "rank": 174,
+          "total": 300,
+          "percentile": 42.0
+        },
+        {
+          "stock_id": "603993",
+          "return": -0.05274000824062622,
+          "rank": 287,
+          "total": 300,
+          "percentile": 4.33
+        },
+        {
+          "stock_id": "601838",
+          "return": 0.005714285714285813,
+          "rank": 123,
+          "total": 300,
+          "percentile": 59.0
+        },
+        {
+          "stock_id": "601728",
+          "return": -0.02173913043478263,
+          "rank": 237,
+          "total": 300,
+          "percentile": 21.0
+        }
+      ]
+    },
+    "model02": {
+      "top_n_return": -0.02485933175309173,
+      "excess_return": -0.0364042267129258,
+      "top_n_detail": [
+        {
+          "stock_id": "600362",
+          "return": -0.041640178003814345,
+          "rank": 271,
+          "total": 300,
+          "percentile": 9.67
+        },
+        {
+          "stock_id": "601698",
+          "return": -0.002301790281329924,
+          "rank": 174,
+          "total": 300,
+          "percentile": 42.0
+        },
+        {
+          "stock_id": "300442",
+          "return": 0.006944444444444443,
+          "rank": 120,
+          "total": 300,
+          "percentile": 60.0
+        },
+        {
+          "stock_id": "300418",
+          "return": -0.03302225412778184,
+          "rank": 262,
+          "total": 300,
+          "percentile": 12.67
+        },
+        {
+          "stock_id": "002050",
+          "return": -0.05427688079697698,
+          "rank": 290,
+          "total": 300,
+          "percentile": 3.33
+        }
+      ]
+    },
+    "model03": {
+      "top_n_return": 0.0070527527936431,
+      "excess_return": -0.0044921421661909735,
+      "top_n_detail": [
+        {
+          "stock_id": "601698",
+          "return": -0.002301790281329924,
+          "rank": 174,
+          "total": 300,
+          "percentile": 42.0
+        },
+        {
+          "stock_id": "300418",
+          "return": -0.03302225412778184,
+          "rank": 262,
+          "total": 300,
+          "percentile": 12.67
+        },
+        {
+          "stock_id": "300442",
+          "return": 0.006944444444444443,
+          "rank": 120,
+          "total": 300,
+          "percentile": 60.0
+        },
+        {
+          "stock_id": "300502",
+          "return": 0.03480278422273797,
+          "rank": 61,
+          "total": 300,
+          "percentile": 79.67
+        },
+        {
+          "stock_id": "002460",
+          "return": 0.028840579710144844,
+          "rank": 68,
+          "total": 300,
+          "percentile": 77.33
+        }
+      ]
+    },
+    "model04": {
+      "top_n_return": -0.0011055396787316113,
+      "excess_return": -0.012650434638565685,
+      "top_n_detail": [
+        {
+          "stock_id": "300803",
+          "return": -0.04188053261920709,
+          "rank": 272,
+          "total": 300,
+          "percentile": 9.33
+        },
+        {
+          "stock_id": "688012",
+          "return": -0.08329659500531626,
+          "rank": 299,
+          "total": 300,
+          "percentile": 0.33
+        },
+        {
+          "stock_id": "002049",
+          "return": 0.0,
+          "rank": 154,
+          "total": 300,
+          "percentile": 48.67
+        },
+        {
+          "stock_id": "688041",
+          "return": 0.12195121951219522,
+          "rank": 13,
+          "total": 300,
+          "percentile": 95.67
+        },
+        {
+          "stock_id": "601698",
+          "return": -0.002301790281329924,
+          "rank": 174,
+          "total": 300,
+          "percentile": 42.0
+        }
+      ]
+    },
+    "model05": {
+      "top_n_return": -0.012071971918853595,
+      "excess_return": -0.023616866878687668,
+      "top_n_detail": [
+        {
+          "stock_id": "601698",
+          "return": -0.002301790281329924,
+          "rank": 174,
+          "total": 300,
+          "percentile": 42.0
+        },
+        {
+          "stock_id": "688012",
+          "return": -0.08329659500531626,
+          "rank": 299,
+          "total": 300,
+          "percentile": 0.33
+        },
+        {
+          "stock_id": "603986",
+          "return": 0.054882394868139686,
+          "rank": 42,
+          "total": 300,
+          "percentile": 86.0
+        },
+        {
+          "stock_id": "600362",
+          "return": -0.041640178003814345,
+          "rank": 271,
+          "total": 300,
+          "percentile": 9.67
+        },
+        {
+          "stock_id": "000807",
+          "return": 0.011996308828052877,
+          "rank": 104,
+          "total": 300,
+          "percentile": 65.33
+        }
+      ]
+    },
+    "model07": {
+      "top_n_return": 0.02229906766721585,
+      "excess_return": 0.010754172707381777,
+      "top_n_detail": [
+        {
+          "stock_id": "603986",
+          "return": 0.054882394868139686,
+          "rank": 42,
+          "total": 300,
+          "percentile": 86.0
+        },
+        {
+          "stock_id": "002460",
+          "return": 0.028840579710144844,
+          "rank": 68,
+          "total": 300,
+          "percentile": 77.33
+        },
+        {
+          "stock_id": "300502",
+          "return": 0.03480278422273797,
+          "rank": 61,
+          "total": 300,
+          "percentile": 79.67
+        },
+        {
+          "stock_id": "300308",
+          "return": 0.014876033057851271,
+          "rank": 96,
+          "total": 300,
+          "percentile": 68.0
+        },
+        {
+          "stock_id": "688472",
+          "return": -0.02190645352279453,
+          "rank": 239,
+          "total": 300,
+          "percentile": 20.33
+        }
+      ]
+    }
+  },
+  "ensemble_return": -0.005348627860129712,
+  "ensemble_excess": -0.016893522819963785,
+  "ensemble_detail": [
+    {
+      "stock_id": "601698",
+      "weight": 0.396406,
+      "return": -0.002301790281329924,
+      "rank": 174,
+      "total": 300
+    },
+    {
+      "stock_id": "603986",
+      "weight": 0.176695,
+      "return": 0.054882394868139686,
+      "rank": 42,
+      "total": 300
+    },
+    {
+      "stock_id": "688012",
+      "weight": 0.148928,
+      "return": -0.08329659500531626,
+      "rank": 299,
+      "total": 300
+    },
+    {
+      "stock_id": "601899",
+      "weight": 0.139293,
+      "return": 0.020467836257310034,
+      "rank": 82,
+      "total": 300
+    },
+    {
+      "stock_id": "300418",
+      "weight": 0.138678,
+      "return": -0.03302225412778184,
+      "rank": 262,
+      "total": 300
+    }
+  ],
+  "status": "complete"
+}

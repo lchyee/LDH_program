@@ -27,7 +27,6 @@ def main():
     print("========== 开始预测: DLinear (Model03) ==========")
     MODEL_ROOT = SRC_DIR.parent
     TRAIN_PATH = PROJECT_ROOT / 'data' / 'train.csv'
-    TEST_PATH = PROJECT_ROOT / 'data' / 'test.csv'
     CHECKPOINT_DIR = MODEL_ROOT / 'checkpoint'
     OUTPUT_DIR = MODEL_ROOT / 'output'
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

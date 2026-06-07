@@ -1,0 +1,5 @@
+week_idx: 8
+iso_week: 2026-W10
+train: 2024-01-02 ~ 2026-02-27
+test:  2026-03-02 ~ 2026-03-06 (5天)
+models: ['model01', 'model02', 'model03', 'model04', 'model05', 'model07']
